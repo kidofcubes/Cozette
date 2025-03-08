@@ -12,7 +12,7 @@ from tempfile import NamedTemporaryFile
 import crayons  # type: ignore
 
 from cozette_builder.changeloggen import get_changelog, get_last_ver
-from cozette_builder.hidpi import double_size
+from cozette_builder.scaler import scale_by
 from cozette_builder.imagegen import (
     add_margins,
     read_sample,
@@ -157,11 +157,11 @@ def fix_ttf(ttfpath: Path, name: str):
     ttfpath.unlink()
 
 
-def make_hidpi(bdf_path: Path, out_path: Path):
-    print(crayons.yellow("Generating hidpi font..."))
+def make_scaled(bdf_path: Path, out_path: Path, scale: int):
+    print(crayons.yellow("Generating scaled font..."))
     with bdf_path.open() as i:
         with out_path.open("w") as o:
-            double_size(i, o)
+            scale_by(i, o, scale)
     print(crayons.green("Done!"))
 
 
@@ -197,7 +197,6 @@ def variant(
 
 
 def gen_versions(bdf_path: Path, font_name: str, filename_prefix: str):
-    hidpi_path = BUILD_DIR / f"{filename_prefix}_hidpi.bdf"
 
     def bnp_invoc_ttf(name: str, format: str):
         return [
@@ -239,28 +238,32 @@ def gen_versions(bdf_path: Path, font_name: str, filename_prefix: str):
         BUILD_DIR / f"{font_name}VectorBold_tmp.ttf", f"{font_name}VectorBold"
     )
     print(crayons.green("Done!"))
-    make_hidpi(bdf_path, hidpi_path)
-    fontforge(
-        open=hidpi_path,
-        generate=[
-            Generate(f"{hidpi_path.stem}.", "otb"),
-            Generate(f"{hidpi_path.stem}.", "fnt"),
-            Generate(f"{hidpi_path.stem}.dfont", "sbit"),
-        ],
-    )
-    rename_single(BUILD_DIR, "*-26.fnt", f"{filename_prefix}_hidpi.fnt")
-    subprocess.run(
-        [
-            BUILD_DIR.parent / "bitsnpicas.sh",
-            "convertbitmap",
-            "-f",
-            "psf",
-            "-o",
-            hidpi_path.with_suffix(".psf"),
-            hidpi_path,
-        ],
-        check=True,
-    )
+
+    for scale in range(2, 8) :
+        scaled_path = BUILD_DIR / f"{filename_prefix}-{scale}x.bdf"
+        make_scaled(bdf_path, scaled_path, scale)
+        fontforge(
+            open=scaled_path,
+            generate=[
+                Generate(f"{scaled_path.stem}.", "otb"),
+                Generate(f"{scaled_path.stem}.", "fnt"),
+                Generate(f"{scaled_path.stem}.dfont", "sbit"),
+            ],
+        )
+        rename_single(BUILD_DIR, f"*-{scale}x-*.fnt", f"{filename_prefix}-{scale}x.fnt")
+
+        subprocess.run(
+            [
+                BUILD_DIR.parent / "bitsnpicas.sh",
+                "convertbitmap",
+                "-f",
+                "psf",
+                "-o",
+                scaled_path.with_suffix(".psf"),
+                scaled_path,
+            ],
+            check=True,
+        )
 
 
 if __name__ == "__main__":

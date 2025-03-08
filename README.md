@@ -64,7 +64,7 @@ Cozette is distributed in three main variants: normal and hi-dpi (upscaled 2x) b
 
 Font scaling varies wildly from system to system, and sometimes even from
 program to program and font format to format. On my system (Linux), `cozette.otb`
-looks right at 13pts; `cozette_hidpi.otb` looks right at 26pts and downscales 
+looks right at 13pts; `cozette-2x.otb` looks right at 26pts and downscales 
 quite elegantly to 10pts; `CozetteVector` doesn't look right at any size (technically,
 it will look right specifically at 9.4pts on a 100dpi screen on Linux, but pixel-perfect
 bitmap fonts are a massive headache, treated differently by every OS, that I'm not quite sure how to solve)

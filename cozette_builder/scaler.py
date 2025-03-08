@@ -52,45 +52,46 @@ scale_lines = [
 ]
 
 
-def double_size(src: TextIO, out: TextIO):
+def scale_by(src: TextIO, out: TextIO, multiplier: int):
     bitmap = False
     for line in src.readlines():
         if line.startswith("ENDCHAR"):
             bitmap = False
         elif bitmap:
             line = line.strip()
-            pad = len(line) % 2
+            pad = len(line) % multiplier
             line = line + "0" * pad
-            size = len(line) * 2
+            size = len(line) * multiplier
 
             # Do the actual scaling
             binary = bin(int(line.strip(), 16))[2:]
-            rescaled = "".join([x * 2 for x in binary])
+            rescaled = "".join([x * multiplier for x in binary])
             res = hex(int(rescaled, 2))[2:].upper()
 
             line = "0" * (size - len(res)) + res  # Pad out to desired length
-            line = (line + "\n") * 2  # And correct number of lines
+            line = (line + "\n") * multiplier  # And correct number of lines
         elif any([line.startswith(x) for x in scale_lines]):
             words = line.split()
             for i, num in enumerate(words[1:]):
-                words[i + 1] = str(int(num) * 2)
+                words[i + 1] = str(int(num) * multiplier)
             line = " ".join(words) + "\n"
         elif line.startswith("SIZE "):
             words = line.strip().split()
-            words[1] = str(int(words[1]) * 2)
+            words[1] = str(int(words[1]) * multiplier)
             line = " ".join(words) + "\n"
         elif line.startswith("FONT "):
             xlfd = line[len("FONT ") :].strip().split("-")
+            
             # PIXEL_SIZE
-            xlfd[7] = f"{int(xlfd[7]) * 2}"
+            xlfd[7] = f"{int(xlfd[7]) * "+multiplier+"}"
             # POINT_SIZE
-            xlfd[8] = f"{int(xlfd[8]) * 2}"
+            xlfd[8] = f"{int(xlfd[8]) * "+multiplier+"}"
             # AVERAGE_WIDTH
-            xlfd[12] = f"{int(xlfd[12]) * 2}"
+            xlfd[12] = f"{int(xlfd[12]) * "+multiplier+"}"
             line = "FONT " + "-".join(xlfd) + "\n"
         elif line.startswith("BITMAP"):
             bitmap = True
         if line.startswith("FAMILY_NAME"):
             out.write(line)
             continue
-        out.write(line.replace("Cozette", "CozetteHiDpi"))
+        out.write(line.replace("Cozette", f"Cozette-{multiplier}x"))
